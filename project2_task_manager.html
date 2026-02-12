@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow - Smart Task Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .task-item {
+            transition: all 0.3s ease;
+        }
+        
+        .task-item:hover {
+            transform: translateX(-5px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .task-completed {
+            opacity: 0.6;
+            text-decoration: line-through;
+        }
+        
+        .priority-high {
+            border-left: 4px solid #ef4444;
+        }
+        
+        .priority-medium {
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .priority-low {
+            border-left: 4px solid #10b981;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <!-- Header -->
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg flex items-center justify-center">
+                        <span class="text-white text-xl font-bold">✓</span>
+                    </div>
+                    <h1 class="text-2xl font-bold text-gray-800">TaskFlow</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="clearCompletedBtn" class="text-gray-600 hover:text-red-600 transition font-medium">
+                        Clear Completed
+                    </button>
+                    <button id="themeToggle" class="text-gray-600 hover:text-purple-600 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="stat-card text-white rounded-xl p-6 shadow-lg">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <p class="text-purple-100 text-sm font-medium">Total Tasks</p>
+                        <h3 class="text-3xl font-bold mt-1" id="totalTasks">0</h3>
+                    </div>
+                    <span class="text-3xl">📋</span>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl p-6 shadow-lg">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">Active</p>
+                        <h3 class="text-3xl font-bold text-blue-600 mt-1" id="activeTasks">0</h3>
+                    </div>
+                    <span class="text-3xl">⚡</span>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl p-6 shadow-lg">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">Completed</p>
+                        <h3 class="text-3xl font-bold text-green-600 mt-1" id="completedTasks">0</h3>
+                    </div>
+                    <span class="text-3xl">✅</span>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl p-6 shadow-lg">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">Completion Rate</p>
+                        <h3 class="text-3xl font-bold text-purple-600 mt-1" id="completionRate">0%</h3>
+                    </div>
+                    <span class="text-3xl">📊</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Task Input Section -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow-lg p-6 sticky top-24">
+                    <h2 class="text-xl font-bold text-gray-800 mb-6">Add New Task</h2>
+                    
+                    <form id="taskForm" class="space-y-4">
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">Task Title</label>
+                            <input 
+                                type="text" 
+                                id="taskTitle" 
+                                required 
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 transition"
+                                placeholder="What needs to be done?"
+                            >
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">Description (Optional)</label>
+                            <textarea 
+                                id="taskDescription" 
+                                rows="3"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 transition"
+                                placeholder="Add more details..."
+                            ></textarea>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">Priority</label>
+                            <select 
+                                id="taskPriority" 
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 transition"
+                            >
+                                <option value="low">🟢 Low</option>
+                                <option value="medium" selected>🟡 Medium</option>
+                                <option value="high">🔴 High</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">Category</label>
+                            <select 
+                                id="taskCategory" 
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 transition"
+                            >
+                                <option value="work">💼 Work</option>
+                                <option value="personal">🏠 Personal</option>
+                                <option value="shopping">🛒 Shopping</option>
+                                <option value="health">💪 Health</option>
+                                <option value="learning">📚 Learning</option>
+                                <option value="other">📝 Other</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">Due Date (Optional)</label>
+                            <input 
+                                type="date" 
+                                id="taskDueDate" 
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 transition"
+                            >
+                        </div>
+                        
+                        <button 
+                            type="submit" 
+                            class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-indigo-700 transition transform hover:scale-105"
+                        >
+                            + Add Task
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Tasks List Section -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold text-gray-800">My Tasks</h2>
+                        <div class="flex space-x-2">
+                            <button class="filter-btn px-4 py-2 rounded-lg font-medium transition bg-purple-600 text-white" data-filter="all">
+                                All
+                            </button>
+                            <button class="filter-btn px-4 py-2 rounded-lg font-medium transition bg-gray-200 text-gray-700 hover:bg-gray-300" data-filter="active">
+                                Active
+                            </button>
+                            <button class="filter-btn px-4 py-2 rounded-lg font-medium transition bg-gray-200 text-gray-700 hover:bg-gray-300" data-filter="completed">
+                                Completed
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="searchContainer" class="mb-6">
+                        <input 
+                            type="text" 
+                            id="searchInput" 
+                            placeholder="🔍 Search tasks..."
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 transition"
+                        >
+                    </div>
+                    
+                    <div id="tasksList" class="space-y-3">
+                        <!-- Tasks will be dynamically added here -->
+                    </div>
+                    
+                    <div id="emptyState" class="text-center py-12">
+                        <span class="text-6xl mb-4 block">📝</span>
+                        <h3 class="text-xl font-semibold text-gray-600 mb-2">No tasks yet</h3>
+                        <p class="text-gray-500">Add your first task to get started!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Task Manager Application
+        class TaskManager {
+            constructor() {
+                this.tasks = this.loadTasks();
+                this.currentFilter = 'all';
+                this.init();
+            }
+            
+            init() {
+                this.renderTasks();
+                this.updateStats();
+                this.attachEventListeners();
+            }
+            
+            loadTasks() {
+                const saved = localStorage.getItem('taskflow_tasks');
+                return saved ? JSON.parse(saved) : [];
+            }
+            
+            saveTasks() {
+                localStorage.setItem('taskflow_tasks', JSON.stringify(this.tasks));
+            }
+            
+            addTask(taskData) {
+                const task = {
+                    id: Date.now(),
+                    title: taskData.title,
+                    description: taskData.description,
+                    priority: taskData.priority,
+                    category: taskData.category,
+                    dueDate: taskData.dueDate,
+                    completed: false,
+                    createdAt: new Date().toISOString()
+                };
+                
+                this.tasks.unshift(task);
+                this.saveTasks();
+                this.renderTasks();
+                this.updateStats();
+            }
+            
+            toggleTask(id) {
+                const task = this.tasks.find(t => t.id === id);
+                if (task) {
+                    task.completed = !task.completed;
+                    this.saveTasks();
+                    this.renderTasks();
+                    this.updateStats();
+                }
+            }
+            
+            deleteTask(id) {
+                this.tasks = this.tasks.filter(t => t.id !== id);
+                this.saveTasks();
+                this.renderTasks();
+                this.updateStats();
+            }
+            
+            clearCompleted() {
+                this.tasks = this.tasks.filter(t => !t.completed);
+                this.saveTasks();
+                this.renderTasks();
+                this.updateStats();
+            }
+            
+            getFilteredTasks(searchTerm = '') {
+                let filtered = this.tasks;
+                
+                // Apply completion filter
+                if (this.currentFilter === 'active') {
+                    filtered = filtered.filter(t => !t.completed);
+                } else if (this.currentFilter === 'completed') {
+                    filtered = filtered.filter(t => t.completed);
+                }
+                
+                // Apply search filter
+                if (searchTerm) {
+                    filtered = filtered.filter(t => 
+                        t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        (t.description && t.description.toLowerCase().includes(searchTerm.toLowerCase()))
+                    );
+                }
+                
+                return filtered;
+            }
+            
+            renderTasks() {
+                const searchTerm = document.getElementById('searchInput').value;
+                const tasks = this.getFilteredTasks(searchTerm);
+                const container = document.getElementById('tasksList');
+                const emptyState = document.getElementById('emptyState');
+                
+                if (tasks.length === 0) {
+                    container.innerHTML = '';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+                
+                emptyState.style.display = 'none';
+                
+                container.innerHTML = tasks.map(task => this.createTaskHTML(task)).join('');
+            }
+            
+            createTaskHTML(task) {
+                const categoryIcons = {
+                    work: '💼',
+                    personal: '🏠',
+                    shopping: '🛒',
+                    health: '💪',
+                    learning: '📚',
+                    other: '📝'
+                };
+                
+                const priorityColors = {
+                    high: 'bg-red-100 text-red-800',
+                    medium: 'bg-yellow-100 text-yellow-800',
+                    low: 'bg-green-100 text-green-800'
+                };
+                
+                const dueDate = task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '';
+                
+                return `
+                    <div class="task-item fade-in priority-${task.priority} bg-gray-50 rounded-lg p-4 ${task.completed ? 'task-completed' : ''}">
+                        <div class="flex items-start space-x-4">
+                            <button 
+                                onclick="taskManager.toggleTask(${task.id})" 
+                                class="flex-shrink-0 mt-1 w-6 h-6 rounded-full border-2 ${task.completed ? 'bg-green-500 border-green-500' : 'border-gray-300 hover:border-purple-500'} transition"
+                            >
+                                ${task.completed ? '<span class="text-white text-xs">✓</span>' : ''}
+                            </button>
+                            
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-start justify-between mb-2">
+                                    <h3 class="text-lg font-semibold text-gray-800 ${task.completed ? 'line-through' : ''}">${task.title}</h3>
+                                    <button 
+                                        onclick="taskManager.deleteTask(${task.id})" 
+                                        class="text-red-500 hover:text-red-700 transition ml-2"
+                                    >
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                                
+                                ${task.description ? `<p class="text-gray-600 text-sm mb-3">${task.description}</p>` : ''}
+                                
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="px-3 py-1 rounded-full text-xs font-medium ${priorityColors[task.priority]}">
+                                        ${task.priority.toUpperCase()}
+                                    </span>
+                                    <span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">
+                                        ${categoryIcons[task.category]} ${task.category}
+                                    </span>
+                                    ${dueDate ? `
+                                        <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                                            📅 ${dueDate}
+                                        </span>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            updateStats() {
+                const total = this.tasks.length;
+                const active = this.tasks.filter(t => !t.completed).length;
+                const completed = this.tasks.filter(t => t.completed).length;
+                const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+                
+                document.getElementById('totalTasks').textContent = total;
+                document.getElementById('activeTasks').textContent = active;
+                document.getElementById('completedTasks').textContent = completed;
+                document.getElementById('completionRate').textContent = rate + '%';
+            }
+            
+            attachEventListeners() {
+                // Form submission
+                document.getElementById('taskForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    
+                    const taskData = {
+                        title: document.getElementById('taskTitle').value,
+                        description: document.getElementById('taskDescription').value,
+                        priority: document.getElementById('taskPriority').value,
+                        category: document.getElementById('taskCategory').value,
+                        dueDate: document.getElementById('taskDueDate').value
+                    };
+                    
+                    this.addTask(taskData);
+                    e.target.reset();
+                });
+                
+                // Filter buttons
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.filter-btn').forEach(b => {
+                            b.classList.remove('bg-purple-600', 'text-white');
+                            b.classList.add('bg-gray-200', 'text-gray-700');
+                        });
+                        
+                        e.target.classList.remove('bg-gray-200', 'text-gray-700');
+                        e.target.classList.add('bg-purple-600', 'text-white');
+                        
+                        this.currentFilter = e.target.dataset.filter;
+                        this.renderTasks();
+                    });
+                });
+                
+                // Search
+                document.getElementById('searchInput').addEventListener('input', () => {
+                    this.renderTasks();
+                });
+                
+                // Clear completed
+                document.getElementById('clearCompletedBtn').addEventListener('click', () => {
+                    if (confirm('Are you sure you want to clear all completed tasks?')) {
+                        this.clearCompleted();
+                    }
+                });
+            }
+        }
+        
+        // Initialize the app
+        const taskManager = new TaskManager();
+    </script>
+</body>
+</html>
